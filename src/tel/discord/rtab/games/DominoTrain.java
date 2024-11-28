@@ -8,10 +8,18 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
+import tel.discord.rtab.RtaBMath;
+
 public class DominoTrain extends MiniGameWrapper {
 	static class Domino {
 		public int left;
 		public int right;
+
+		public static String[] SIGILS = {
+			"   ",
+			" · ", "· ·", "···",
+			": :", ":·:", ":::"
+		};
 
 		public Domino(int left, int right) {
 			this.left = left;
@@ -116,6 +124,13 @@ public class DominoTrain extends MiniGameWrapper {
 	void startGame() {
 		this.pool = createSet(6); // create a set of double-6 dominoes
 
+		// flip about half of the dominos to make it feel more random
+		for (Domino d : pool) {
+			if (RtaBMath.random() > 0.5) {
+				d.flip();
+			}
+		}
+
 		this.hand = new ArrayList<>(4); // initial hand size is 4
 
 		Domino current = pool.removeFirst(); // get the 0-0 tile
@@ -158,7 +173,7 @@ public class DominoTrain extends MiniGameWrapper {
 
 		int roundScore = 0;
 
-		if (words.length == 3) {
+		if (words.length == 3 || words.length == 2) {
 			// Handle the case for if there are three separate words.
 
 			// PART ONE: HANDLE THE DOMINO
@@ -198,17 +213,19 @@ public class DominoTrain extends MiniGameWrapper {
 				return;
 			}
 
-			// PART THREE: HANDLE THE ORIENTATION
-			if (words[2].equals("normal") || words[2].equals("n")) {
-				placeFlipped = false;
-			} else if (words[2].equals("flipped") || words[2].equals("f")) {
-				placeFlipped = true;
-			} else {
-				sendMessage("Please tell me whether the domino is NORMAL or FLIPPED.");
-				getInput();
-				return;
+			// PART THREE: HANDLE THE ORIENTATION (if present)
+			if (words.length == 3) {
+				if (words[2].equals("normal") || words[2].equals("n")) {
+					placeFlipped = false;
+				} else if (words[2].equals("flipped") || words[2].equals("f")) {
+					placeFlipped = true;
+				} else {
+					sendMessage("Please tell me whether the domino is NORMAL or FLIPPED (leave the third word off for NORMAL).");
+					getInput();
+					return;
+				}
 			}
-		} else if (words.length == 1 && words[0].length() == 3) {
+		} else if (words.length == 1 && (words[0].length() == 3 || words[0].length() == 2)) {
 			// Handle the case for if it is three letters in one word.
 
 			// PART ONE: HANDLE THE DOMINO
@@ -241,18 +258,20 @@ public class DominoTrain extends MiniGameWrapper {
 				return;
 			}
 
-			// PART THREE: HANDLE THE ORIENTATION
-			if (words[0].charAt(2) == 'n') {
-				placeFlipped = false;
-			} else if (words[0].charAt(2) == 'f') {
-				placeFlipped = true;
-			} else {
-				sendMessage("Third character must be N (for normal) or F (for flipped).");
-				getInput();
-				return;
+			if (words[0].length() == 3) {
+				// PART THREE: HANDLE THE ORIENTATION
+				if (words[0].charAt(2) == 'n') {
+					placeFlipped = false;
+				} else if (words[0].charAt(2) == 'f') {
+					placeFlipped = true;
+				} else {
+					sendMessage("Third character must be N (for normal) or F (for flipped), or not present.");
+					getInput();
+					return;
+				}
 			}
 		} else {
-			sendMessage("I need three words on one line, or three letters.");
+			sendMessage("I need output formatted like 'A LEFT' or 'B RIGHT FLIPPED' or an abbreviation.");
 			getInput();
 			return;
 		}
@@ -270,7 +289,7 @@ public class DominoTrain extends MiniGameWrapper {
 				next.flip();
 			} else {
 				if (!next.matchesLeft(rightValue)) {
-					sendMessage("Cannot place that domino RIGHT NORMAL. Try again.");
+					sendMessage("Cannot place that domino RIGHT. Try again.");
 					getInput();
 					return;
 				}
@@ -292,7 +311,7 @@ public class DominoTrain extends MiniGameWrapper {
 				next.flip();
 			} else {
 				if (!next.matchesRight(leftValue)) {
-					sendMessage("Cannot place that domino LEFT NORMAL. Try again.");
+					sendMessage("Cannot place that domino LEFT. Try again.");
 					getInput();
 					return;
 				}
@@ -336,6 +355,8 @@ public class DominoTrain extends MiniGameWrapper {
 				canPlayOne = true;
 			}
 
+			boolean symmetric = next.left == next.right;
+
 			boolean canGoRightUnflipped = next.matchesLeft(train.getLast().right);
 			boolean canGoRightFlipped = next.matchesRight(train.getLast().right);
 
@@ -345,15 +366,15 @@ public class DominoTrain extends MiniGameWrapper {
 			ArrayList<String> orientations = new ArrayList<>();
 
 			if (canGoRightUnflipped) {
-				orientations.add("RIGHT NORMAL");
+				orientations.add("RIGHT");
 			}
-			if (canGoRightFlipped) {
+			if (canGoRightFlipped && !symmetric) {
 				orientations.add("RIGHT FLIPPED");
 			}
 			if (canGoLeftUnflipped) {
-				orientations.add("LEFT NORMAL");
+				orientations.add("LEFT");
 			}
-			if (canGoLeftFlipped) {
+			if (canGoLeftFlipped && !symmetric) {
 				orientations.add("LEFT FLIPPED");
 			}
 
@@ -374,7 +395,7 @@ public class DominoTrain extends MiniGameWrapper {
 		LinkedList<String> output = new LinkedList<>();
 
 		if (hand.size() < maxHandSize) {
-			output.add("Drawing up to " + maxHandSize + " dominoes...");
+			output.add("Drawing to hand size of " + maxHandSize + "...");
 		}
 
 		while (hand.size() < maxHandSize) {
@@ -405,9 +426,28 @@ public class DominoTrain extends MiniGameWrapper {
 		LinkedList<String> messages = new LinkedList<>();
 		messages.add(String.format("""
 			```
-			SCORE:           %10d
-			DOLLARS/POINT:  $%,10d (next: $%,d)
-			PRIZE:          $%,10d
+			.-------.  DOMINO .-------.
+			|%s|%s|         |%s|%s|
+			`-------´  TRAIN  `-------´
+			Score:           %7dpts
+			Dollars/Point:  $%,10d
+			Prize:          $%,10d
+
+			Next $/pt:      $%,10d
+			```
+			""",
+			Domino.SIGILS[train.getFirst().left],
+			Domino.SIGILS[train.getFirst().right],
+			Domino.SIGILS[train.getLast().left],
+			Domino.SIGILS[train.getLast().right],
+			this.score,
+			this.dollarsPerPoint,
+			this.dollarsPerPoint * this.score,
+			DOLLARS_PER_POINT_SCHEDULE[this.roundNum / 6 + 1]
+		));
+
+		messages.add(String.format("""
+			```
 
 			TRAIN:
 
@@ -418,18 +458,14 @@ public class DominoTrain extends MiniGameWrapper {
 			%s
 			```
 			""",
-			this.score,
-			this.dollarsPerPoint,
-			DOLLARS_PER_POINT_SCHEDULE[this.roundNum / 6 + 1],
-			this.dollarsPerPoint * this.score,
 			this.getTrainString(),
 			this.getHandString()
 		));
 
 		if (canPlayOne) {
 			messages.add(
-				"Choose a domino to play, which side (LEFT or RIGHT), and whether it is FLIPPED or NORMAL, in that order. " +
-				"For instance, type 'D RIGHT FLIPPED' or 'DRF' to place domino D on the right of the train, flipped."
+				"Choose a domino to play, which side (LEFT or RIGHT), and whether it is FLIPPED or not, in that order. " +
+				"For instance, type 'A LEFT' or 'B RIGHT FLIPPED' or you may shorten it to 'AL', 'BRF', etc."
 			);
 		}
 
@@ -443,7 +479,7 @@ public class DominoTrain extends MiniGameWrapper {
 			String placedMsg = String.format("Placed domino `%s`", placed);
 
 			if (scoreAdded > 0) {
-				placedMsg += ", scoring " + scoreAdded + " points.";
+				placedMsg += ", scoring **" + scoreAdded + "** points.";
 			} else {
 				placedMsg += ", but you scored nothing for it, because you matched with a wild.";
 			}
@@ -478,20 +514,10 @@ public class DominoTrain extends MiniGameWrapper {
 
 	@Override
 	void abortGame() {
+		awardMoneyWon(score * dollarsPerPoint);
 	}
 
-	@Override
-	public String getName() {
-		return "Domino Train";
-	}
-
-	@Override
-	public String getShortName() {
-		return "Train";
-	}
-
-	@Override
-	public boolean isBonus() {
-		return false;
-	}
+	@Override public String getName() { return "Domino Train"; } 
+	@Override public String getShortName() { return "Train"; } 
+	@Override public boolean isBonus() { return false; }
 }
