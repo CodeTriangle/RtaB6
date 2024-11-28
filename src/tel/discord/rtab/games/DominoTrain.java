@@ -103,11 +103,11 @@ public class DominoTrain extends MiniGameWrapper {
 	int score = 0;
 
 	final static int[] DOLLARS_PER_POINT_SCHEDULE = {
-		5_000,
 		7_500,
 		10_000,
-		20_000,
-		50_000 // won't happen unless all 28 are placed.
+		12_500,
+		15_000,
+		25_000 // won't happen unless all 28 are placed.
 	};
 
 	int dollarsPerPoint = DOLLARS_PER_POINT_SCHEDULE[0];
@@ -135,7 +135,8 @@ public class DominoTrain extends MiniGameWrapper {
 			"Dominoes can be flipped before being placed.",
 			"Every time you make a match, you score points equal to the number on the dominoes.",
 			"However, a number matched with Zero scores no points.",
-			"You'll start with a hand of four dominoes, and this number decreases as you proceed."
+			"You'll start with a hand of four dominoes, and this number decreases as you proceed.",
+			"But every time this happens, you'll also get more dollars for every point."
 		);
 
 		sendSkippableMessages(output);
@@ -172,7 +173,7 @@ public class DominoTrain extends MiniGameWrapper {
 			// if it is not a letter that appeared in the hand summary, complain
 			int idx = words[0].charAt(0) - 'a';
 			if (idx < 0 || idx >= hand.size()) {
-				sendMessage("Please type a valid character.");
+				sendMessage("Please type a valid letter from the list.");
 				getInput();
 				return;
 			}
