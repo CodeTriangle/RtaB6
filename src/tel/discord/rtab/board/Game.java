@@ -25,6 +25,7 @@ public enum Game implements WeightedSpace
 	SHUT_THE_BOX(2)		{ public MiniGame getGame() { return new ShutTheBox(); } },		//Author: StrangerCoug
 	ZILCH(2)			{ public MiniGame getGame() { return new Zilch(); } },			//Author: StrangerCoug
 	BUMPER_GRAB(2)		{ public MiniGame getGame() { return new BumperGrab(); } },		//Author: Tara
+	DOMINO_TRAIN(1) { public MiniGame getGame() { return new DominoTrain(); } },	//Author: CodeTriangle
 	
 	//Games rotated out
 	TESTGAME(0)			{ public MiniGame getGame() { return new TestGame(); } },		//Author: The Triforce
