@@ -2,6 +2,7 @@ package tel.discord.rtab.games;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
@@ -99,7 +100,17 @@ public class DominoTrain extends MiniGameWrapper {
 
 	int maxHandSize = 4;
 	int roundNum = 0;
-	int score;
+	int score = 0;
+
+	final static int[] DOLLARS_PER_POINT_SCHEDULE = {
+		5_000,
+		7_500,
+		10_000,
+		20_000,
+		50_000 // won't happen unless all 28 are placed.
+	};
+
+	int dollarsPerPoint = DOLLARS_PER_POINT_SCHEDULE[0];
 
 	@Override
 	void startGame() {
@@ -115,21 +126,16 @@ public class DominoTrain extends MiniGameWrapper {
 
 		Collections.shuffle(pool);
 
-		LinkedList<String> output = new LinkedList<>();
-
-		Collections.addAll(
-			output,
-			new String[] {
-				"In this game, you must create the longest train you can using dominoes.",
-				"There are 28 dominoes in total, one for each pair of numbers between 0 and 6.",
-				"A domino can be placed next to another domino if they share a number.",
-				"Zeroes are wild and can be placed next to any other number.",
-				"You can play on either end of the train, so long as the domino matches.",
-				"Dominoes can be flipped before being placed.",
-				"Every time you make a match, you score points equal to the number on the dominoes.",
-				"However, a number matched with Zero scores no points.",
-				"You'll start with a hand of four dominoes, and this number decreases as you proceed.",
-			}
+		List<String> output = Arrays.asList(
+			"In this game, you must create the longest train you can using dominoes.",
+			"There are 28 dominoes in total, one for each pair of numbers between 0 and 6.",
+			"A domino can be placed next to another domino if they share a number.",
+			"Zeroes are wild and can be placed next to any other number.",
+			"You can play on either end of the train, so long as the domino matches.",
+			"Dominoes can be flipped before being placed.",
+			"Every time you make a match, you score points equal to the number on the dominoes.",
+			"However, a number matched with Zero scores no points.",
+			"You'll start with a hand of four dominoes, and this number decreases as you proceed."
 		);
 
 		sendSkippableMessages(output);
@@ -201,7 +207,7 @@ public class DominoTrain extends MiniGameWrapper {
 				getInput();
 				return;
 			}
-		} else if (words.length == 1 || words[0].length() == 3) {
+		} else if (words.length == 1 && words[0].length() == 3) {
 			// Handle the case for if it is three letters in one word.
 
 			// PART ONE: HANDLE THE DOMINO
@@ -304,7 +310,7 @@ public class DominoTrain extends MiniGameWrapper {
 		updateGameState(next, roundScore);
 
 		if (!canPlayOne) {
-			awardMoneyWon(score * 20000); 
+			awardMoneyWon(score * dollarsPerPoint); 
 		}
 
 		getInput();
@@ -398,7 +404,9 @@ public class DominoTrain extends MiniGameWrapper {
 		LinkedList<String> messages = new LinkedList<>();
 		messages.add(String.format("""
 			```
-			SCORE: %d
+			SCORE:           %10d
+			DOLLARS/POINT:  $%,10d (next: $%,d)
+			PRIZE:          $%,10d
 
 			TRAIN:
 
@@ -410,6 +418,9 @@ public class DominoTrain extends MiniGameWrapper {
 			```
 			""",
 			this.score,
+			this.dollarsPerPoint,
+			DOLLARS_PER_POINT_SCHEDULE[this.roundNum / 6 + 1],
+			this.dollarsPerPoint * this.score,
 			this.getTrainString(),
 			this.getHandString()
 		));
@@ -440,8 +451,14 @@ public class DominoTrain extends MiniGameWrapper {
 		}
 
 		if (roundNum % 7 == 6) {
-			messages.add("Good job getting this far! Your hand size has decreased by one.");
+			this.dollarsPerPoint = DOLLARS_PER_POINT_SCHEDULE[roundNum / 7 + 1];
 			maxHandSize--;
+
+			messages.add(String.format(
+				"Good job getting this far! Your hand size has decreased by one " +
+				"and you will now receive **$%,d** for every point.",
+				dollarsPerPoint
+			));
 		}
 		roundNum++;
 

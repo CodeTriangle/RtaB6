@@ -121,7 +121,7 @@ abstract class MiniGameWrapper implements MiniGame
 	 * This should be used for long strings of instructions that are the same every time the minigame is played.
 	 * @param messages A list of strings to send to the game channel.
 	 */
-	void sendSkippableMessages(LinkedList<String> messages)
+	void sendSkippableMessages(List<String> messages)
 	{
 		if(autoSkip)
 			return;
