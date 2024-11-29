@@ -147,7 +147,7 @@ public class DominoTrain extends MiniGameWrapper {
 			"However, a number matched with Zero scores no points.",
 			"You'll start with a hand of four dominoes, and this number decreases as you proceed.",
 			"But every time this happens, you'll also get more dollars for every point.",
-			"You start with the 0-0 tile. Good luck."
+			"You start with the domino `[0|0]`. Good luck."
 		);
 
 		sendSkippableMessages(output);
@@ -429,14 +429,15 @@ public class DominoTrain extends MiniGameWrapper {
 		LinkedList<String> messages = new LinkedList<>();
 		messages.add(String.format("""
 			```
-			.-------.  DOMINO .-------.
-			|%s|%s|         |%s|%s|
-			`-------´  TRAIN  `-------´
-			Score:           %7dpts
-			Dollars/Point:  $%,10d
-			Prize:          $%,10d
+			.-------.                 .-------.
+			|%s|%s|  DOMINO  TRAIN  |%s|%s|
+			`-------´                 `-------´
+			Score:                %10dpts
+			Dollars/point:        $%,12d
+			Prize:                $%,12d
 
-			Next $/pt:      $%,10d
+			Next dollars/point:   $%,12d
+			Progress to next:             %2d/%2d
 			```
 			""",
 			Domino.SIGILS[train.getFirst().left],
@@ -446,7 +447,9 @@ public class DominoTrain extends MiniGameWrapper {
 			this.score,
 			this.dollarsPerPoint,
 			this.dollarsPerPoint * this.score,
-			DOLLARS_PER_POINT_SCHEDULE[this.roundNum / 6 + 1]
+			DOLLARS_PER_POINT_SCHEDULE[this.roundNum / 6 + 1],
+			roundNum,
+			(roundNum / 7 + 1) * 7
 		));
 
 		messages.add(String.format("""
