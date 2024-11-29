@@ -83,13 +83,8 @@ public class DominoTrain extends MiniGameWrapper {
 		}
 	}
 
-	static List<Domino> createSet(int maxNumber) {
-		int sizeOfSet = 0;
-		for (int i = 1; i <= maxNumber + 1; i++) {
-			sizeOfSet += i;
-		}
-
-		List<Domino> result = new ArrayList<>(sizeOfSet);
+	static LinkedList<Domino> createSet(int maxNumber) {
+		LinkedList<Domino> result = new LinkedList<>();
 		for (int l = 0; l <= maxNumber; l++) {
 			for (int r = l; r <= maxNumber; r++) {
 				result.add(new Domino(l, r));
@@ -99,7 +94,7 @@ public class DominoTrain extends MiniGameWrapper {
 		return result;
 	}
 
-	List<Domino> pool;
+	LinkedList<Domino> pool;
 	Deque<Domino> train;
 
 	List<Domino> hand;
@@ -131,7 +126,7 @@ public class DominoTrain extends MiniGameWrapper {
 			}
 		}
 
-		this.hand = new ArrayList<>(4); // initial hand size is 4
+		this.hand = new LinkedList<>(); // initial hand size is 4
 
 		Domino current = pool.removeFirst(); // get the 0-0 tile
 
@@ -151,12 +146,13 @@ public class DominoTrain extends MiniGameWrapper {
 			"Every time you make a match, you score points equal to the number on the dominoes.",
 			"However, a number matched with Zero scores no points.",
 			"You'll start with a hand of four dominoes, and this number decreases as you proceed.",
-			"But every time this happens, you'll also get more dollars for every point."
+			"But every time this happens, you'll also get more dollars for every point.",
+			"You start with the 0-0 tile. Good luck."
 		);
 
 		sendSkippableMessages(output);
 
-		updateGameState(null, 0);
+		updateGameState(null, 0, 0);
 
 		getInput();
 	}
@@ -166,6 +162,7 @@ public class DominoTrain extends MiniGameWrapper {
 		input = input.toLowerCase();
 
 		Domino next = null;
+		int nextIndex = 0;
 		boolean placeRight = false;
 		boolean placeFlipped = false;
 
@@ -186,14 +183,14 @@ public class DominoTrain extends MiniGameWrapper {
 			}
 
 			// if it is not a letter that appeared in the hand summary, complain
-			int idx = words[0].charAt(0) - 'a';
-			if (idx < 0 || idx >= hand.size()) {
+			nextIndex = words[0].charAt(0) - 'a';
+			if (nextIndex < 0 || nextIndex >= hand.size()) {
 				sendMessage("Please type a valid letter from the list.");
 				getInput();
 				return;
 			}
 
-			Domino toPlay = hand.get(idx);
+			Domino toPlay = hand.get(nextIndex);
 			if (toPlay.matches(train.getLast().right) || toPlay.matches(train.getFirst().left)) {
 				next = toPlay;
 			} else {
@@ -231,14 +228,14 @@ public class DominoTrain extends MiniGameWrapper {
 			// PART ONE: HANDLE THE DOMINO
 
 			// if it is not a letter that appeared in the hand summary, complain
-			int idx = words[0].charAt(0) - 'a';
-			if (idx < 0 || idx >= hand.size()) {
+			nextIndex = words[0].charAt(0) - 'a';
+			if (nextIndex < 0 || nextIndex >= hand.size()) {
 				sendMessage("First character is not a valid domino.");
 				getInput();
 				return;
 			}
 
-			Domino toPlay = hand.get(idx);
+			Domino toPlay = hand.get(nextIndex);
 			if (toPlay.matches(train.getLast().right) || toPlay.matches(train.getFirst().left)) {
 				next = toPlay;
 			} else {
@@ -325,9 +322,10 @@ public class DominoTrain extends MiniGameWrapper {
 			train.addFirst(next);
 		}
 
-		hand.remove(next);
 
-		updateGameState(next, roundScore);
+		hand.remove(nextIndex);
+
+		updateGameState(next, nextIndex, roundScore);
 
 		if (!canPlayOne) {
 			awardMoneyWon(score * dollarsPerPoint); 
@@ -391,8 +389,9 @@ public class DominoTrain extends MiniGameWrapper {
 		return outputBuilder.toString();
 	}
 
-	List<String> drawHand() {
+	List<String> drawHand(int index) {
 		LinkedList<String> output = new LinkedList<>();
+		StringBuilder drawnMessageBuilder = new StringBuilder();
 
 		if (hand.size() < maxHandSize) {
 			output.add("Drawing to hand size of " + maxHandSize + "...");
@@ -400,8 +399,12 @@ public class DominoTrain extends MiniGameWrapper {
 
 		while (hand.size() < maxHandSize) {
 			Domino drawn = pool.removeLast();
-			hand.add(drawn);
-			output.add(String.format("Drew this domino: `%s`", drawn));
+			hand.add(index++, drawn);
+			drawnMessageBuilder.append(String.format("Drew this domino: `%s`\n", drawn));
+		}
+
+		if (!drawnMessageBuilder.isEmpty()) {
+			output.add(drawnMessageBuilder.toString());
 		}
 
 		return output;
@@ -472,7 +475,7 @@ public class DominoTrain extends MiniGameWrapper {
 		return messages;
 	}
 
-	void updateGameState(Domino placed, int scoreAdded) {
+	void updateGameState(Domino placed, int index, int scoreAdded) {
 		List<String> messages = new LinkedList<>();
 
 		if (placed != null) {
@@ -499,7 +502,7 @@ public class DominoTrain extends MiniGameWrapper {
 		}
 		roundNum++;
 
-		messages.addAll(drawHand());
+		messages.addAll(drawHand(index));
 
 		messages.addAll(getPrompt());
 
