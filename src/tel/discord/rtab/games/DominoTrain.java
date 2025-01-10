@@ -364,20 +364,20 @@ public class DominoTrain extends MiniGameWrapper {
 			ArrayList<String> orientations = new ArrayList<>();
 
 			if (canGoRightUnflipped) {
-				orientations.add("RIGHT");
+				orientations.add("**RIGHT**");
 			}
 			if (canGoRightFlipped && !symmetric) {
-				orientations.add("RIGHT FLIPPED");
+				orientations.add("**RIGHT FLIPPED**");
 			}
 			if (canGoLeftUnflipped) {
-				orientations.add("LEFT");
+				orientations.add("**LEFT**");
 			}
 			if (canGoLeftFlipped && !symmetric) {
-				orientations.add("LEFT FLIPPED");
+				orientations.add("**LEFT FLIPPED**");
 			}
 
 			outputBuilder.append(String.format(
-				"%c - %s (%s)\n",
+				"%c - `%s` (%s)\n",
 				counter,
 				next,
 				canPlay ? String.join(", ", orientations) : "UNPLAYABLE"
@@ -438,6 +438,10 @@ public class DominoTrain extends MiniGameWrapper {
 
 			Next dollars/point:   $%,12d
 			Progress to next:             %2d/%2d
+
+			========== CURRENT TRAIN ==========
+
+			%s
 			```
 			""",
 			Domino.SIGILS[train.getFirst().left],
@@ -449,24 +453,11 @@ public class DominoTrain extends MiniGameWrapper {
 			this.dollarsPerPoint * this.score,
 			DOLLARS_PER_POINT_SCHEDULE[this.roundNum / 6 + 1],
 			roundNum,
-			(roundNum / 7 + 1) * 7
+			(roundNum / 7 + 1) * 7,
+			this.getTrainString()
 		));
 
-		messages.add(String.format("""
-			```
-
-			TRAIN:
-
-			%s
-
-			HAND:
-
-			%s
-			```
-			""",
-			this.getTrainString(),
-			this.getHandString()
-		));
+		messages.add(this.getHandString());
 
 		if (canPlayOne) {
 			messages.add(
